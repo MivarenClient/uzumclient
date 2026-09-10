@@ -45,8 +45,8 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
     if (newsRes.data) setNews(newsRes.data as NewsItem[]);
     if (mediaRes.data) setMediaApps(mediaRes.data as MediaApplication[]);
 
-    const { data: paymentsData } = await supabase.rpc('exec_sql', {
-      sql: `SELECT pr.*, p.username FROM payment_requests pr LEFT JOIN profiles p ON pr.user_id = p.id ORDER BY pr.created_at DESC`
+    const { data: paymentsData } = await supabase.rpc('query_sql', {
+      sql: `SELECT pr.id, pr.user_id, pr.plan_type, pr.amount, pr.card_number, pr.proof_url, pr.status, pr.created_at, pr.reviewed_at, p.username FROM payment_requests pr LEFT JOIN profiles p ON pr.user_id = p.id ORDER BY pr.created_at DESC`
     });
     if (paymentsData) setPaymentRequests(paymentsData as PaymentRequest[]);
     setLoading(false);
@@ -557,15 +557,15 @@ Yangilik qo'shish
                           </span>
                         </div>
                         {req.proof_url && (
-                          <a
-                            href={req.proof_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-primary-300 hover:text-primary-200"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Skrinshotni ko'rish
-                          </a>
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1">Skrinshot:</p>
+                            <img
+                              src={req.proof_url}
+                              alt="To'lov cheki"
+                              className="max-w-xs max-h-48 rounded-xl border border-white/10 cursor-pointer hover:scale-105 transition-transform"
+                              onClick={() => window.open(req.proof_url!, '_blank')}
+                            />
+                          </div>
                         )}
                       </div>
 

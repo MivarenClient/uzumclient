@@ -107,8 +107,24 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
     setSubmitting(true);
     setError(null);
 
+    let proofBase64: string | null = null;
+
+    if (proofFile) {
+      try {
+        const reader = new FileReader();
+        proofBase64 = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(proofFile);
+        });
+      } catch (e) {
+        console.warn('File read failed:', e);
+      }
+    }
+
+    const escapedProof = proofBase64 ? proofBase64.replace(/'/g, "''") : 'NULL';
+
     const { error } = await supabase.rpc('exec_sql', {
-      sql: `INSERT INTO payment_requests (user_id, plan_type, amount, card_number, proof_url) VALUES ('${user.id}', '${selectedPlan.id}', '${selectedPlan.price}', '${CARD_NUMBER.replace(/\s/g, '')}', NULL)`
+      sql: `INSERT INTO payment_requests (user_id, plan_type, amount, card_number, proof_url) VALUES ('${user.id}', '${selectedPlan.id}', '${selectedPlan.price}', '${CARD_NUMBER.replace(/\s/g, '')}', ${proofBase64 ? `'${escapedProof}'` : 'NULL'})`
     });
 
     if (error) {
