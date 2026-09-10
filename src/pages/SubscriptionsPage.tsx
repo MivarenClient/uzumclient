@@ -128,12 +128,8 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
     }
 
     const { error: insertError } = await supabase
-      .rpc('create_payment_request', {
-        p_user_id: user.id,
-        p_plan_type: selectedPlan.id,
-        p_amount: selectedPlan.price,
-        p_card_number: CARD_NUMBER.replace(/\s/g, ''),
-        p_proof_url: proofUrl,
+      .rpc('exec_sql', {
+        sql: `INSERT INTO payment_requests (user_id, plan_type, amount, card_number, proof_url) VALUES ('${user.id}', '${selectedPlan.id}', '${selectedPlan.price}', '${CARD_NUMBER.replace(/\s/g, '')}', ${proofUrl ? `'${proofUrl}'` : 'NULL'})`
       });
 
     if (insertError) {
