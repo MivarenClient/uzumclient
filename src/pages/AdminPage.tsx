@@ -292,6 +292,9 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
                                 <span className="px-1.5 py-0.5 rounded bg-error-500/10 text-error-300 text-xs font-mono">BLOCK</span>
                               )}
                             </div>
+                            {u.email && (
+                              <p className="text-xs text-gray-500 truncate mt-0.5">{u.email}</p>
+                            )}
                             <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                               <span className="flex items-center gap-1">
                                 <Crown className="w-3 h-3" />
@@ -345,16 +348,19 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
                             <Key className="w-4 h-4" />
                           </button>
 
-                          {/* Unblock (only if blocked) */}
-                          {u.is_blocked && (
-                            <button
-                              onClick={() => toggleBlock(u.id, true)}
-                              disabled={actionLoading === u.id}
-                              className="px-3 py-2 rounded-xl glass-card text-xs font-medium text-success-300 hover:bg-success-500/10 transition-all flex items-center gap-1.5 disabled:opacity-30"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" /> Ochish
-                            </button>
-                          )}
+                          {/* Block/Unblock toggle */}
+                          <button
+                            onClick={() => toggleBlock(u.id, u.is_blocked)}
+                            disabled={actionLoading === u.id || u.is_admin}
+                            className={`w-9 h-9 rounded-xl glass-card text-xs font-medium transition-all flex items-center justify-center disabled:opacity-30 ${
+                              u.is_blocked
+                                ? 'text-success-300 hover:bg-success-500/10'
+                                : 'text-error-300 hover:bg-error-500/10'
+                            }`}
+                            title={u.is_blocked ? 'Blokdani ochish' : 'Bloklash'}
+                          >
+                            {u.is_blocked ? <CheckCircle className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                          </button>
 
                           {actionLoading === u.id && <Loader2 className="w-4 h-4 animate-spin text-primary-400 self-center" />}
                         </div>

@@ -102,7 +102,7 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
   };
 
   const handleSubmit = async () => {
-    if (!user || !selectedPlan) return;
+    if (!user || !selectedPlan || !proofFile) return;
 
     setSubmitting(true);
     setError(null);
@@ -286,7 +286,7 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
                 {/* Proof upload */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    To'lov skrinshoti (ixtiyoriy)
+                    To'lov skrinshoti <span className="text-error-400">*</span>
                   </label>
                   <label className="glass-card p-4 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors">
                     <Upload className="w-5 h-5 text-gray-400" />
@@ -310,8 +310,8 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
 
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting}
-                  className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={submitting || !proofFile}
+                  className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <>
