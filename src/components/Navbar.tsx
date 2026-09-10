@@ -33,7 +33,7 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
           {/* Logo */}
           <button onClick={() => handleNav('home')} className="flex items-center gap-3 group flex-shrink-0">
             <img
-              src="/logo.png"
+              src={`${import.meta.env.BASE_URL}logo.png`}
               alt="UZUM CLIENT"
               className="w-10 h-10 rounded-xl object-cover group-hover:scale-110 transition-transform duration-300"
               style={{ filter: 'brightness(0) invert(1)' }}

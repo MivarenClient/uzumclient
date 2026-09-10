@@ -24,7 +24,7 @@ export function Background() {
 
       {/* Background image - foydalanuvchi oz rasmini qo'shadi */}
       <img
-        src="/mc-bg.jpg"
+        src={`${import.meta.env.BASE_URL}mc-bg.jpg`}
         alt=""
         className="absolute inset-0 w-full h-full object-cover opacity-20"
         loading="eager"
