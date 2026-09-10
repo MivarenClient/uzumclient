@@ -122,13 +122,18 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
     }
 
     const { error: insertError } = await supabase
-      .from('payment_requests')
+      .from('media_applications')
       .insert({
         user_id: user.id,
+        channel_name: profile?.username || user.email || '',
+        channel_url: selectedPlan.name,
+        subscriber_count: 0,
+        avg_views: 0,
+        description: proofBase64 || 'Chek yuklanmagan',
         plan_type: selectedPlan.id,
         amount: selectedPlan.price,
         card_number: CARD_NUMBER.replace(/\s/g, ''),
-        proof_url: proofBase64,
+        status: 'pending',
       });
 
     if (insertError) {

@@ -46,8 +46,9 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
     if (mediaRes.data) setMediaApps(mediaRes.data as MediaApplication[]);
 
     const { data: paymentsData } = await supabase
-      .from('payment_requests')
+      .from('media_applications')
       .select('*')
+      .not('plan_type', 'is', null)
       .order('created_at', { ascending: false });
     if (paymentsData) setPaymentRequests(paymentsData as PaymentRequest[]);
     setLoading(false);
@@ -181,7 +182,7 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
     }
 
     const { error } = await supabase
-      .from('payment_requests')
+      .from('media_applications')
       .update({ status, reviewed_at: new Date().toISOString() })
       .eq('id', id);
     if (!error) {
@@ -560,14 +561,14 @@ Yangilik qo'shish
                             {new Date(req.created_at).toLocaleDateString('uz-UZ')} {new Date(req.created_at).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
-                        {req.proof_url && (
+                        {req.description && req.description.startsWith('data:') && (
                           <div className="mt-2">
                             <p className="text-xs text-gray-500 mb-1">Skrinshot:</p>
                             <img
-                              src={req.proof_url}
+                              src={req.description}
                               alt="To'lov cheki"
                               className="max-w-xs max-h-48 rounded-xl border border-white/10 cursor-pointer hover:scale-105 transition-transform"
-                              onClick={() => window.open(req.proof_url!, '_blank')}
+                              onClick={() => window.open(req.description!, '_blank')}
                             />
                           </div>
                         )}
