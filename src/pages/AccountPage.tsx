@@ -55,28 +55,24 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    if (file.size > 200 * 1024) {
+      alert('Fayl hajmi 200KB dan kichik bo\'lishi kerak.');
+      return;
+    }
+
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = fileName;
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      const publicUrl = urlData.publicUrl;
-      setAvatarUrl(publicUrl);
+      setAvatarUrl(base64);
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: base64 })
         .eq('id', user.id);
 
       if (updateError) throw updateError;
