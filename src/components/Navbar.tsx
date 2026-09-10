@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X, Home, Newspaper, CreditCard, Headphones, Users, User } from 'lucide-react';
+import { Menu, X, Home, CreditCard, Headphones, Users, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export type Page = 'home' | 'news' | 'subscriptions' | 'support' | 'media' | 'account' | 'admin' | 'auth';
@@ -15,7 +15,6 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
 
   const navItems: { page: Page; label: string; icon: typeof Home }[] = [
     { page: 'home', label: 'Bosh sahifa', icon: Home },
-    { page: 'news', label: 'Yangliklar', icon: Newspaper },
     { page: 'subscriptions', label: 'Obunalar', icon: CreditCard },
     { page: 'media', label: 'Media partnyor', icon: Users },
     { page: 'support', label: 'Qollab-quvatlash', icon: Headphones },
