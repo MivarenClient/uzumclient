@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   User, Lock, Cpu, Download, Calendar, Crown, Loader2, AlertCircle,
-  CheckCircle, Camera, Key, Clock, Shield, ChevronRight,
+  CheckCircle, Camera, Key, Clock, Shield, ChevronRight, Infinity,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -396,13 +396,5 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
         </div>
       </div>
     </div>
-  );
-}
-
-function Infinity(props: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className}>
-      <path d="M6 16c2.5 0 4-2 6-2s3.5 2 6 2 4-2 4-4-1.5-4-4-4-3.5 2-6 2-3.5-2-6-2-4 2-4 4 1.5 4 4 4z" />
-    </svg>
   );
 }
