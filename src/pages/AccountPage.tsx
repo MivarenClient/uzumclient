@@ -55,16 +55,26 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    if (file.size > 200 * 1024) {
-      alert('Fayl hajmi 200KB dan kichik bo\'lishi kerak.');
-      return;
-    }
-
     setUploading(true);
     try {
       const base64 = await new Promise<string>((resolve) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const size = 150;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d')!;
+            const min = Math.min(img.width, img.height);
+            const sx = (img.width - min) / 2;
+            const sy = (img.height - min) / 2;
+            ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.src = reader.result as string;
+        };
         reader.readAsDataURL(file);
       });
 
@@ -78,6 +88,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
       if (updateError) throw updateError;
 
       await refreshProfile();
+      alert('Avatar yangilandi!');
     } catch (err) {
       console.error('Avatar upload error:', err);
       alert('Avatar yuklashda xatolik yuz berdi.');
