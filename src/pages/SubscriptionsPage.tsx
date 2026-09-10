@@ -128,13 +128,12 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
     }
 
     const { error: insertError } = await supabase
-      .from('payment_requests')
-      .insert({
-        user_id: user.id,
-        plan_type: selectedPlan.id,
-        amount: selectedPlan.price,
-        card_number: CARD_NUMBER.replace(/\s/g, ''),
-        proof_url: proofUrl,
+      .rpc('create_payment_request', {
+        p_user_id: user.id,
+        p_plan_type: selectedPlan.id,
+        p_amount: selectedPlan.price,
+        p_card_number: CARD_NUMBER.replace(/\s/g, ''),
+        p_proof_url: proofUrl,
       });
 
     if (insertError) {
