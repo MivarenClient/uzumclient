@@ -107,28 +107,15 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
     setSubmitting(true);
     setError(null);
 
-    let proofUrl: string | null = null;
+    const { error } = await supabase.rpc('exec_sql', {
+      sql: `INSERT INTO payment_requests (user_id, plan_type, amount, card_number, proof_url) VALUES ('${user.id}', '${selectedPlan.id}', '${selectedPlan.price}', '${CARD_NUMBER.replace(/\s/g, '')}', NULL)`
+    });
 
-    if (proofFile) {
-      try {
-        const fileName = `proofs/${user.id}/${Date.now()}_${proofFile.name}`;
-        const { data: uploadData } = await supabase.storage
-          .from('payment-proofs')
-          .upload(fileName, proofFile);
-
-        if (uploadData) {
-          const { data: urlData } = supabase.storage
-            .from('payment-proofs')
-            .getPublicUrl(fileName);
-          proofUrl = urlData.publicUrl;
-        }
-      } catch (e) {
-        console.warn('Proof upload failed, continuing without proof:', e);
-      }
+    if (error) {
+      console.warn('Payment insert error:', error);
     }
 
     setSubmitted(true);
-
     setSubmitting(false);
   };
 
