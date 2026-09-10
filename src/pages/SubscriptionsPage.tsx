@@ -107,10 +107,10 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
     setSubmitting(true);
     setError(null);
 
-    try {
-      let proofUrl: string | null = null;
+    let proofUrl: string | null = null;
 
-      if (proofFile) {
+    if (proofFile) {
+      try {
         const fileName = `proofs/${user.id}/${Date.now()}_${proofFile.name}`;
         const { data: uploadData } = await supabase.storage
           .from('payment-proofs')
@@ -122,24 +122,26 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
             .getPublicUrl(fileName);
           proofUrl = urlData.publicUrl;
         }
+      } catch (e) {
+        console.warn('Proof upload failed, continuing without proof:', e);
       }
+    }
 
-      const { error: insertError } = await supabase
-        .from('payment_requests')
-        .insert({
-          user_id: user.id,
-          plan_type: selectedPlan.id,
-          amount: selectedPlan.price,
-          card_number: CARD_NUMBER.replace(/\s/g, ''),
-          proof_url: proofUrl,
-        });
+    const { error: insertError } = await supabase
+      .from('payment_requests')
+      .insert({
+        user_id: user.id,
+        plan_type: selectedPlan.id,
+        amount: selectedPlan.price,
+        card_number: CARD_NUMBER.replace(/\s/g, ''),
+        proof_url: proofUrl,
+      });
 
-      if (insertError) throw insertError;
-
+    if (insertError) {
+      console.error('Insert error:', insertError);
+      setError('Xatolik yuz berdi: ' + insertError.message);
+    } else {
       setSubmitted(true);
-    } catch (err) {
-      console.error('Payment request error:', err);
-      setError('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     }
 
     setSubmitting(false);
