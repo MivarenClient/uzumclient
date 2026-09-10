@@ -36,16 +36,19 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
 
   const loadAll = async () => {
     setLoading(true);
-    const [usersRes, newsRes, mediaRes, paymentsRes] = await Promise.all([
+    const [usersRes, newsRes, mediaRes] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('news').select('*').order('created_at', { ascending: false }),
       supabase.from('media_applications').select('*').order('created_at', { ascending: false }),
-      supabase.from('payment_requests').select('*, profiles(*)').order('created_at', { ascending: false }),
     ]);
     if (usersRes.data) setUsers(usersRes.data as Profile[]);
     if (newsRes.data) setNews(newsRes.data as NewsItem[]);
     if (mediaRes.data) setMediaApps(mediaRes.data as MediaApplication[]);
-    if (paymentsRes.data) setPaymentRequests(paymentsRes.data as PaymentRequest[]);
+
+    const { data: paymentsData } = await supabase.rpc('exec_sql', {
+      sql: `SELECT pr.*, p.username FROM payment_requests pr LEFT JOIN profiles p ON pr.user_id = p.id ORDER BY pr.created_at DESC`
+    });
+    if (paymentsData) setPaymentRequests(paymentsData as PaymentRequest[]);
     setLoading(false);
   };
 
@@ -176,13 +179,10 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
       }
     }
 
-    const { error } = await supabase
-      .from('payment_requests')
-      .update({ status, reviewed_at: new Date().toISOString() })
-      .eq('id', id);
-    if (!error) {
-      setPaymentRequests(paymentRequests.map(p => p.id === id ? { ...p, status, reviewed_at: new Date().toISOString() } : p));
-    }
+    await supabase.rpc('exec_sql', {
+      sql: `UPDATE payment_requests SET status = '${status}', reviewed_at = '${new Date().toISOString()}' WHERE id = '${id}'`
+    });
+    setPaymentRequests(paymentRequests.map(p => p.id === id ? { ...p, status, reviewed_at: new Date().toISOString() } : p));
     setActionLoading(null);
   };
 
