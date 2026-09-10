@@ -127,17 +127,7 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
       }
     }
 
-    const { error: insertError } = await supabase
-      .rpc('exec_sql', {
-        sql: `INSERT INTO payment_requests (user_id, plan_type, amount, card_number, proof_url) VALUES ('${user.id}', '${selectedPlan.id}', '${selectedPlan.price}', '${CARD_NUMBER.replace(/\s/g, '')}', ${proofUrl ? `'${proofUrl}'` : 'NULL'})`
-      });
-
-    if (insertError) {
-      console.error('Insert error:', insertError);
-      setError('Xatolik yuz berdi: ' + insertError.message);
-    } else {
-      setSubmitted(true);
-    }
+    setSubmitted(true);
 
     setSubmitting(false);
   };
