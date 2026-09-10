@@ -41,6 +41,9 @@ export type MediaApplication = {
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   reviewed_at: string | null;
+  plan_type?: string | null;
+  amount?: string | null;
+  card_number?: string | null;
 };
 
 export type PaymentRequest = {

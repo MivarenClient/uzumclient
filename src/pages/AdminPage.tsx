@@ -43,14 +43,12 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
     ]);
     if (usersRes.data) setUsers(usersRes.data as Profile[]);
     if (newsRes.data) setNews(newsRes.data as NewsItem[]);
-    if (mediaRes.data) setMediaApps(mediaRes.data as MediaApplication[]);
-
-    const { data: paymentsData } = await supabase
-      .from('media_applications')
-      .select('*')
-      .not('plan_type', 'is', null)
-      .order('created_at', { ascending: false });
-    if (paymentsData) setPaymentRequests(paymentsData as PaymentRequest[]);
+    if (mediaRes.data) {
+      const all = mediaRes.data as MediaApplication[];
+      const paymentPlanIds = ['30day', '90day', 'lifetime'];
+      setMediaApps(all.filter(a => !paymentPlanIds.includes(a.channel_url)));
+      setPaymentRequests(all.filter(a => paymentPlanIds.includes(a.channel_url)) as PaymentRequest[]);
+    }
     setLoading(false);
   };
 
@@ -168,15 +166,15 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
       const req = paymentRequests.find(p => p.id === id);
       if (req) {
         let expiresAt: string | null = null;
-        if (req.plan_type === '30day') {
+        if (req.channel_url === '30day') {
           expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        } else if (req.plan_type === '90day') {
+        } else if (req.channel_url === '90day') {
           expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
         }
 
         await supabase
           .from('profiles')
-          .update({ subscription_type: req.plan_type, subscription_expires_at: expiresAt })
+          .update({ subscription_type: req.channel_url as Profile['subscription_type'], subscription_expires_at: expiresAt })
           .eq('id', req.user_id);
       }
     }
@@ -537,7 +535,7 @@ Yangilik qo'shish
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-semibold text-white">
-                            {req.profiles?.username || 'Noma\'lum'}
+                            {req.channel_name || 'Noma\'lum'}
                           </h3>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             req.status === 'pending' ? 'bg-warning-500/10 border border-warning-500/20 text-warning-300' :
@@ -550,11 +548,11 @@ Yangilik qo'shish
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mb-2">
                           <span className="flex items-center gap-1">
                             <Crown className="w-3 h-3" />
-                            {planLabels[req.plan_type]}
+                            {planLabels[req.channel_url] || req.channel_url}
                           </span>
                           <span className="flex items-center gap-1">
                             <CreditCard className="w-3 h-3" />
-                            {req.amount} so'm
+                            {req.avg_views.toLocaleString()} so'm
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />

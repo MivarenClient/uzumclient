@@ -126,13 +126,10 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
       .insert({
         user_id: user.id,
         channel_name: profile?.username || user.email || '',
-        channel_url: selectedPlan.name,
+        channel_url: selectedPlan.id,
         subscriber_count: 0,
-        avg_views: 0,
+        avg_views: parseInt(selectedPlan.price.replace(/\D/g, '')) || 0,
         description: proofBase64 || 'Chek yuklanmagan',
-        plan_type: selectedPlan.id,
-        amount: selectedPlan.price,
-        card_number: CARD_NUMBER.replace(/\s/g, ''),
         status: 'pending',
       });
 
