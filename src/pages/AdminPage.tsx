@@ -37,7 +37,7 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
   const loadAll = async () => {
     setLoading(true);
     const [usersRes, newsRes, mediaRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.rpc('get_users_with_email').then(r => ({ data: r.data, error: r.error })),
       supabase.from('news').select('*').order('created_at', { ascending: false }),
       supabase.from('media_applications').select('*').order('created_at', { ascending: false }),
     ]);
