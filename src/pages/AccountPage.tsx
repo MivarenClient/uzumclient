@@ -57,41 +57,50 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
 
     setUploading(true);
     try {
-      const base64 = await new Promise<string>((resolve) => {
+      const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Faylni o\'qib bo\'lmadi'));
         reader.onload = () => {
           const img = new Image();
+          img.onerror = () => reject(new Error('Rasmni yuklab bo\'lmadi'));
           img.onload = () => {
             const canvas = document.createElement('canvas');
-            const size = 150;
+            const size = 100;
             canvas.width = size;
             canvas.height = size;
-            const ctx = canvas.getContext('2d')!;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return reject(new Error('Canvas context yo\'q'));
             const min = Math.min(img.width, img.height);
             const sx = (img.width - min) / 2;
             const sy = (img.height - min) / 2;
             ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
+            resolve(canvas.toDataURL('image/jpeg', 0.5));
           };
           img.src = reader.result as string;
         };
         reader.readAsDataURL(file);
       });
 
-      setAvatarUrl(base64);
+      console.log('Base64 length:', base64.length);
 
-      const { error: updateError } = await supabase
+      const { data, error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: base64 })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
 
-      if (updateError) throw updateError;
+      console.log('Update result:', data, updateError);
 
-      await refreshProfile();
+      if (updateError) {
+        console.error('Supabase update error:', updateError);
+        throw updateError;
+      }
+
+      setAvatarUrl(base64);
       alert('Avatar yangilandi!');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Avatar upload error:', err);
-      alert('Avatar yuklashda xatolik yuz berdi.');
+      alert('Xatolik: ' + (err.message || err));
     }
     setUploading(false);
   };
