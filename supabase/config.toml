@@ -1,0 +1,10 @@
+project_id = "0ec90b57d6e95fcbda19832f"
+
+[functions.admin-assign-subscription]
+verify_jwt = true
+
+[functions.admin-reset-hwid]
+verify_jwt = true
+
+[functions.admin-toggle-block]
+verify_jwt = true

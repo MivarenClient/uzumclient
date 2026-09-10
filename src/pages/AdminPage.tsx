@@ -1,0 +1,646 @@
+import { useEffect, useState } from 'react';
+import {
+  Shield, Users, Newspaper, Megaphone, Search, Crown, Cpu,
+  Ban, CheckCircle, XCircle, Trash2, Plus, Minus, Loader2, AlertCircle,
+  Calendar, Clock, X, Edit3, RefreshCw, CreditCard, ExternalLink, Key, Zap, Star,
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { supabase, type Profile, type NewsItem, type MediaApplication, type PaymentRequest } from '@/lib/supabase';
+import type { Page } from '@/components/Navbar';
+
+type AdminPageProps = {
+  onNavigate: (page: Page) => void;
+};
+
+type Tab = 'users' | 'news' | 'media' | 'payments';
+
+export function AdminPage({ onNavigate }: AdminPageProps) {
+  const { profile } = useAuth();
+  const [tab, setTab] = useState<Tab>('users');
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [mediaApps, setMediaApps] = useState<MediaApplication[]>([]);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showNewsModal, setShowNewsModal] = useState(false);
+  const [newsForm, setNewsForm] = useState({ title: '', content: '', version: '' });
+  const [showSubModal, setShowSubModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile?.is_admin) return;
+    loadAll();
+  }, [profile?.is_admin]);
+
+  const loadAll = async () => {
+    setLoading(true);
+    const [usersRes, newsRes, mediaRes, paymentsRes] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('news').select('*').order('created_at', { ascending: false }),
+      supabase.from('media_applications').select('*').order('created_at', { ascending: false }),
+      supabase.from('payment_requests').select('*, profiles(*)').order('created_at', { ascending: false }),
+    ]);
+    if (usersRes.data) setUsers(usersRes.data as Profile[]);
+    if (newsRes.data) setNews(newsRes.data as NewsItem[]);
+    if (mediaRes.data) setMediaApps(mediaRes.data as MediaApplication[]);
+    if (paymentsRes.data) setPaymentRequests(paymentsRes.data as PaymentRequest[]);
+    setLoading(false);
+  };
+
+  if (!profile?.is_admin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center pt-24">
+        <div className="text-center">
+          <Shield className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+          <p className="text-gray-400 mb-4">Sizda admin huquqlari yo'q.</p>
+          <button onClick={() => onNavigate('home')} className="btn-primary">Bosh sahifa</button>
+        </div>
+      </div>
+    );
+  }
+
+  const assignSubscription = async (userId: string, type: 'none' | '30day' | '90day' | 'lifetime') => {
+    setActionLoading(userId);
+    let expiresAt: string | null = null;
+    if (type === '30day') {
+      expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    } else if (type === '90day') {
+      expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ subscription_type: type, subscription_expires_at: expiresAt })
+      .eq('id', userId);
+
+    if (!error) {
+      setUsers(users.map(u => u.id === userId ? { ...u, subscription_type: type, subscription_expires_at: expiresAt } : u));
+    }
+    setActionLoading(null);
+  };
+
+  const resetHwid = async (userId: string) => {
+    setActionLoading(userId);
+    const { error } = await supabase.from('profiles').update({ hwid: null }).eq('id', userId);
+    if (!error) {
+      setUsers(users.map(u => u.id === userId ? { ...u, hwid: null } : u));
+    }
+    setActionLoading(null);
+  };
+
+  const toggleBlock = async (userId: string, currentBlocked: boolean) => {
+    setActionLoading(userId);
+    const { error } = await supabase.from('profiles').update({ is_blocked: !currentBlocked }).eq('id', userId);
+    if (!error) {
+      setUsers(users.map(u => u.id === userId ? { ...u, is_blocked: !currentBlocked } : u));
+    }
+    setActionLoading(null);
+  };
+
+  const removeSubscription = async (userId: string) => {
+    setActionLoading(userId);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ subscription_type: 'none', subscription_expires_at: null })
+      .eq('id', userId);
+    if (!error) {
+      setUsers(users.map(u => u.id === userId ? { ...u, subscription_type: 'none', subscription_expires_at: null } : u));
+    }
+    setActionLoading(null);
+  };
+
+  const openSubModal = (userId: string) => {
+    setSelectedUserId(userId);
+    setShowSubModal(true);
+  };
+
+  const assignFromModal = async (type: Profile['subscription_type']) => {
+    if (!selectedUserId) return;
+    await assignSubscription(selectedUserId, type);
+    setShowSubModal(false);
+    setSelectedUserId(null);
+  };
+
+  const createNews = async () => {
+    if (!newsForm.title.trim() || !newsForm.content.trim()) return;
+    setActionLoading('news');
+    const { data, error } = await supabase
+      .from('news')
+      .insert({ title: newsForm.title, content: newsForm.content, version: newsForm.version || null })
+      .select()
+      .single();
+    if (!error && data) {
+      setNews([data as NewsItem, ...news]);
+      setNewsForm({ title: '', content: '', version: '' });
+      setShowNewsModal(false);
+    }
+    setActionLoading(null);
+  };
+
+  const deleteNews = async (id: string) => {
+    const { error } = await supabase.from('news').delete().eq('id', id);
+    if (!error) setNews(news.filter(n => n.id !== id));
+  };
+
+  const reviewMediaApp = async (id: string, status: 'approved' | 'rejected') => {
+    setActionLoading(id);
+    const { error } = await supabase
+      .from('media_applications')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq('id', id);
+    if (!error) {
+      setMediaApps(mediaApps.map(a => a.id === id ? { ...a, status, reviewed_at: new Date().toISOString() } : a));
+    }
+    setActionLoading(null);
+  };
+
+  const reviewPayment = async (id: string, status: 'approved' | 'rejected') => {
+    setActionLoading(id);
+
+    if (status === 'approved') {
+      const req = paymentRequests.find(p => p.id === id);
+      if (req) {
+        let expiresAt: string | null = null;
+        if (req.plan_type === '30day') {
+          expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        } else if (req.plan_type === '90day') {
+          expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+        }
+
+        await supabase
+          .from('profiles')
+          .update({ subscription_type: req.plan_type, subscription_expires_at: expiresAt })
+          .eq('id', req.user_id);
+      }
+    }
+
+    const { error } = await supabase
+      .from('payment_requests')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq('id', id);
+    if (!error) {
+      setPaymentRequests(paymentRequests.map(p => p.id === id ? { ...p, status, reviewed_at: new Date().toISOString() } : p));
+    }
+    setActionLoading(null);
+  };
+
+  const filteredUsers = users.filter(u =>
+    u.username.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const subLabels: Record<string, string> = {
+    none: 'Obuna yoq',
+    '30day': '30 kunlik',
+    '90day': '90 kunlik',
+    lifetime: 'Umrbodlik',
+  };
+
+  const planLabels: Record<string, string> = {
+    '30day': '30 kunlik',
+    '90day': '90 kunlik',
+    lifetime: 'Umrbodlik',
+  };
+
+  const tabs: { id: Tab; label: string; icon: typeof Users; count: number }[] = [
+    { id: 'users', label: 'Foydalanuvchilar', icon: Users, count: users.length },
+    { id: 'news', label: 'Yangliklar', icon: Newspaper, count: news.length },
+    { id: 'media', label: 'Media so\'rovlar', icon: Megaphone, count: mediaApps.filter(a => a.status === 'pending').length },
+    { id: 'payments', label: 'To\'lovlar', icon: CreditCard, count: paymentRequests.filter(p => p.status === 'pending').length },
+  ];
+
+  return (
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-warning-500 to-warning-700 flex items-center justify-center shadow-lg shadow-warning-500/30">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="font-display font-bold text-3xl text-white">Admin panel</h1>
+            <p className="text-sm text-gray-400">Barcha hisoblarni boshqaring</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="glass rounded-2xl p-1.5 flex gap-1 mb-6 overflow-x-auto no-scrollbar">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex-1 min-w-fit px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
+                tab === t.id
+                  ? 'bg-warning-500/15 text-warning-300 border border-warning-500/20'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <t.icon className="w-4 h-4" />
+              {t.label}
+              {t.count > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-xs">{t.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-primary-400 animate-spin" />
+          </div>
+        ) : (
+          <>
+            {/* USERS TAB */}
+            {tab === 'users' && (
+              <div>
+                {/* Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Foydalanuvchi qidirish..."
+                    className="glass-input w-full pl-12 pr-4 py-3 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  {filteredUsers.map((u) => (
+                    <div key={u.id} className="glass-card p-4 sm:p-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        {/* User info */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/20 to-primary-700/20 border border-primary-500/20 flex items-center justify-center flex-shrink-0">
+                            {u.avatar_url ? (
+                              <img src={u.avatar_url} alt="" className="w-full h-full rounded-xl object-cover" />
+                            ) : (
+                              <Users className="w-5 h-5 text-primary-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-white truncate">{u.username}</h3>
+                              {u.is_admin && (
+                                <span className="px-1.5 py-0.5 rounded bg-warning-500/10 text-warning-300 text-xs font-mono">ADMIN</span>
+                              )}
+                              {u.is_blocked && (
+                                <span className="px-1.5 py-0.5 rounded bg-error-500/10 text-error-300 text-xs font-mono">BLOCK</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                              <span className="flex items-center gap-1">
+                                <Crown className="w-3 h-3" />
+                                {subLabels[u.subscription_type]}
+                              </span>
+                              {u.subscription_expires_at && u.subscription_type !== 'lifetime' && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(u.subscription_expires_at).toLocaleDateString('uz-UZ')}
+                                </span>
+                              )}
+                              {u.hwid && (
+                                <span className="flex items-center gap-1 font-mono text-gray-500 truncate">
+                                  <Cpu className="w-3 h-3" />
+                                  HWID: {u.hwid.slice(0, 12)}...
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-wrap gap-2">
+                          {/* + button: Assign subscription */}
+                          <button
+                            onClick={() => openSubModal(u.id)}
+                            disabled={actionLoading === u.id}
+                            className="w-9 h-9 rounded-xl glass-card text-xs font-medium text-success-300 hover:bg-success-500/10 transition-all flex items-center justify-center disabled:opacity-30"
+                            title="Obuna berish"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+
+                          {/* - button: Remove subscription */}
+                          <button
+                            onClick={() => removeSubscription(u.id)}
+                            disabled={actionLoading === u.id || u.subscription_type === 'none'}
+                            className="w-9 h-9 rounded-xl glass-card text-xs font-medium text-error-300 hover:bg-error-500/10 transition-all flex items-center justify-center disabled:opacity-30"
+                            title="Obunani olib tashlash"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+
+                          {/* Reset HWID */}
+                          <button
+                            onClick={() => resetHwid(u.id)}
+                            disabled={actionLoading === u.id || !u.hwid}
+                            className="w-9 h-9 rounded-xl glass-card text-xs font-medium text-secondary-300 hover:bg-secondary-500/10 transition-all flex items-center justify-center disabled:opacity-30"
+                            title="HWID tozalash"
+                          >
+                            <Key className="w-4 h-4" />
+                          </button>
+
+                          {/* Unblock (only if blocked) */}
+                          {u.is_blocked && (
+                            <button
+                              onClick={() => toggleBlock(u.id, true)}
+                              disabled={actionLoading === u.id}
+                              className="px-3 py-2 rounded-xl glass-card text-xs font-medium text-success-300 hover:bg-success-500/10 transition-all flex items-center gap-1.5 disabled:opacity-30"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" /> Ochish
+                            </button>
+                          )}
+
+                          {actionLoading === u.id && <Loader2 className="w-4 h-4 animate-spin text-primary-400 self-center" />}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredUsers.length === 0 && (
+                    <div className="glass-card p-8 text-center text-gray-400">Foydalanuvchi topilmadi.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* NEWS TAB */}
+            {tab === 'news' && (
+              <div>
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={() => setShowNewsModal(true)}
+                    className="btn-primary text-sm py-2.5 px-5 flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+Yangilik qo'shish
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {news.map((item) => (
+                    <div key={item.id} className="glass-card p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            {item.version && (
+                              <span className="px-2 py-0.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-xs text-primary-300 font-mono">
+                                v{item.version}
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-500">{new Date(item.created_at).toLocaleDateString('uz-UZ')}</span>
+                          </div>
+                          <h3 className="font-semibold text-white mb-1">{item.title}</h3>
+                          <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{item.content}</p>
+                        </div>
+                        <button
+                          onClick={() => deleteNews(item.id)}
+                          className="p-2 rounded-xl glass-card text-error-400 hover:bg-error-500/10 transition-all flex-shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {news.length === 0 && (
+                    <div className="glass-card p-8 text-center text-gray-400">Yangiliklar yo'q.</div>
+                  )}
+                </div>
+
+                {/* News modal */}
+                {showNewsModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowNewsModal(false)}>
+                    <div className="absolute inset-0 bg-black/70" />
+                    <div className="relative glass-strong rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="font-display font-bold text-xl text-white">Yangilik qo'shish</h3>
+                        <button onClick={() => setShowNewsModal(false)} className="w-8 h-8 rounded-lg glass-card flex items-center justify-center">
+                          <X className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Sarlavha</label>
+                          <input
+                            type="text"
+                            value={newsForm.title}
+                            onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
+                            placeholder="Yangi modul qo'shildi"
+                            className="glass-input w-full px-4 py-3 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Versiya (ixtiyoriy)</label>
+                          <input
+                            type="text"
+                            value={newsForm.version}
+                            onChange={(e) => setNewsForm({ ...newsForm, version: e.target.value })}
+                            placeholder="1.0.1"
+                            className="glass-input w-full px-4 py-3 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Matn</label>
+                          <textarea
+                            value={newsForm.content}
+                            onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+                            placeholder="Yangilik haqida batafsil..."
+                            rows={5}
+                            className="glass-input w-full px-4 py-3 text-sm resize-none"
+                          />
+                        </div>
+                        <button
+                          onClick={createNews}
+                          disabled={actionLoading === 'news'}
+                          className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {actionLoading === 'news' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Qo\'shish'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* MEDIA TAB */}
+            {tab === 'media' && (
+              <div className="space-y-3">
+                {mediaApps.map((app) => (
+                  <div key={app.id} className="glass-card p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-white">{app.channel_name}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            app.status === 'pending' ? 'bg-warning-500/10 border border-warning-500/20 text-warning-300' :
+                            app.status === 'approved' ? 'bg-success-500/10 border border-success-500/20 text-success-300' :
+                            'bg-error-500/10 border border-error-500/20 text-error-300'
+                          }`}>
+                            {app.status === 'pending' ? 'Kutilmoqda' : app.status === 'approved' ? 'Tasdiqlangan' : 'Rad etilgan'}
+                          </span>
+                        </div>
+                        <a href={app.channel_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-300 hover:text-primary-200 block mb-2">
+                          {app.channel_url}
+                        </a>
+                        <div className="flex gap-4 text-xs text-gray-400 mb-2">
+                          <span>Obunachilar: {app.subscriber_count}</span>
+                          <span>O'rtacha ko'rishlar: {app.avg_views}</span>
+                        </div>
+                        <p className="text-sm text-gray-400 leading-relaxed">{app.description}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {new Date(app.created_at).toLocaleDateString('uz-UZ')}
+                        </p>
+                      </div>
+
+                      {app.status === 'pending' && (
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => reviewMediaApp(app.id, 'approved')}
+                            disabled={actionLoading === app.id}
+                            className="px-3 py-2 rounded-xl glass-card text-xs font-medium text-success-300 hover:bg-success-500/10 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Tasdiqlash
+                          </button>
+                          <button
+                            onClick={() => reviewMediaApp(app.id, 'rejected')}
+                            disabled={actionLoading === app.id}
+                            className="px-3 py-2 rounded-xl glass-card text-xs font-medium text-error-300 hover:bg-error-500/10 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Rad etish
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {mediaApps.length === 0 && (
+                  <div className="glass-card p-8 text-center text-gray-400">Media so'rovlar yo'q.</div>
+                )}
+              </div>
+            )}
+
+            {/* PAYMENTS TAB */}
+            {tab === 'payments' && (
+              <div className="space-y-3">
+                {paymentRequests.map((req) => (
+                  <div key={req.id} className="glass-card p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-white">
+                            {req.profiles?.username || 'Noma\'lum'}
+                          </h3>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            req.status === 'pending' ? 'bg-warning-500/10 border border-warning-500/20 text-warning-300' :
+                            req.status === 'approved' ? 'bg-success-500/10 border border-success-500/20 text-success-300' :
+                            'bg-error-500/10 border border-error-500/20 text-error-300'
+                          }`}>
+                            {req.status === 'pending' ? 'Kutilmoqda' : req.status === 'approved' ? 'Tasdiqlangan' : 'Rad etilgan'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mb-2">
+                          <span className="flex items-center gap-1">
+                            <Crown className="w-3 h-3" />
+                            {planLabels[req.plan_type]}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <CreditCard className="w-3 h-3" />
+                            {req.amount} so'm
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(req.created_at).toLocaleDateString('uz-UZ')} {new Date(req.created_at).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        {req.proof_url && (
+                          <a
+                            href={req.proof_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary-300 hover:text-primary-200"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Skrinshotni ko'rish
+                          </a>
+                        )}
+                      </div>
+
+                      {req.status === 'pending' && (
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => reviewPayment(req.id, 'approved')}
+                            disabled={actionLoading === req.id}
+                            className="px-3 py-2 rounded-xl glass-card text-xs font-medium text-success-300 hover:bg-success-500/10 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Tasdiqlash
+                          </button>
+                          <button
+                            onClick={() => reviewPayment(req.id, 'rejected')}
+                            disabled={actionLoading === req.id}
+                            className="px-3 py-2 rounded-xl glass-card text-xs font-medium text-error-300 hover:bg-error-500/10 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Rad etish
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {paymentRequests.length === 0 && (
+                  <div className="glass-card p-8 text-center text-gray-400">To'lov so'rovlar yo'q.</div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Subscription Modal */}
+        {showSubModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSubModal(false)}>
+            <div className="absolute inset-0 bg-black/70" />
+            <div className="relative glass-strong rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-display font-bold text-xl text-white">Obuna berish</h3>
+                <button onClick={() => setShowSubModal(false)} className="w-8 h-8 rounded-lg glass-card flex items-center justify-center">
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <button
+                  onClick={() => assignFromModal('30day')}
+                  disabled={actionLoading === selectedUserId}
+                  className="w-full py-3 rounded-xl glass-card text-sm font-medium text-primary-300 hover:bg-primary-500/10 transition-all flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  30 kunlik obuna
+                </button>
+                <button
+                  onClick={() => assignFromModal('90day')}
+                  disabled={actionLoading === selectedUserId}
+                  className="w-full py-3 rounded-xl glass-card text-sm font-medium text-secondary-300 hover:bg-secondary-500/10 transition-all flex items-center justify-center gap-2"
+                >
+                  <Star className="w-4 h-4" />
+                  90 kunlik obuna
+                </button>
+                <button
+                  onClick={() => assignFromModal('lifetime')}
+                  disabled={actionLoading === selectedUserId}
+                  className="w-full py-3 rounded-xl glass-card text-sm font-medium text-warning-300 hover:bg-warning-500/10 transition-all flex items-center justify-center gap-2"
+                >
+                  <Crown className="w-4 h-4" />
+                  Umrbodlik obuna
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
