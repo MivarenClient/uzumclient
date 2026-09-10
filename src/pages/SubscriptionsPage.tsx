@@ -241,20 +241,9 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
                 <div className="w-16 h-16 rounded-full bg-success-500/10 border border-success-500/20 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-success-400" />
                 </div>
-                <h3 className="font-display font-bold text-xl text-white mb-2">To'lov amalga oshirildi!</h3>
-                <p className="text-sm text-gray-400 mb-4">
-                  To'lov chekini Telegram orqali yuboring:
-                </p>
-                <a
-                  href="https://t.me/UzumClientSupport"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary inline-flex items-center gap-2 mb-4"
-                >
-                  Telegramga yuborish
-                </a>
-                <p className="text-xs text-gray-500">
-                  Admin 24 soat ichida obunangizni faollashtiradi.
+                <h3 className="font-display font-bold text-xl text-white mb-2">So'rov yuborildi!</h3>
+                <p className="text-sm text-gray-400 mb-6">
+                  Admin 24 soat ichida tekshirib obunangizni faollashtiradi.
                 </p>
                 <button onClick={closeModal} className="btn-primary px-8">
                   Yaxshi
