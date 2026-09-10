@@ -45,9 +45,10 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
     if (newsRes.data) setNews(newsRes.data as NewsItem[]);
     if (mediaRes.data) setMediaApps(mediaRes.data as MediaApplication[]);
 
-    const { data: paymentsData } = await supabase.rpc('query_sql', {
-      sql: `SELECT pr.id, pr.user_id, pr.plan_type, pr.amount, pr.card_number, pr.proof_url, pr.status, pr.created_at, pr.reviewed_at, p.username FROM payment_requests pr LEFT JOIN profiles p ON pr.user_id = p.id ORDER BY pr.created_at DESC`
-    });
+    const { data: paymentsData } = await supabase
+      .from('payment_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
     if (paymentsData) setPaymentRequests(paymentsData as PaymentRequest[]);
     setLoading(false);
   };
@@ -179,10 +180,13 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
       }
     }
 
-    await supabase.rpc('exec_sql', {
-      sql: `UPDATE payment_requests SET status = '${status}', reviewed_at = '${new Date().toISOString()}' WHERE id = '${id}'`
-    });
-    setPaymentRequests(paymentRequests.map(p => p.id === id ? { ...p, status, reviewed_at: new Date().toISOString() } : p));
+    const { error } = await supabase
+      .from('payment_requests')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq('id', id);
+    if (!error) {
+      setPaymentRequests(paymentRequests.map(p => p.id === id ? { ...p, status, reviewed_at: new Date().toISOString() } : p));
+    }
     setActionLoading(null);
   };
 

@@ -121,14 +121,21 @@ export function SubscriptionsPage({ onNavigate }: SubscriptionsPageProps) {
       }
     }
 
-    const escapedProof = proofBase64 ? proofBase64.replace(/'/g, "''") : 'NULL';
+    const { error: insertError } = await supabase
+      .from('payment_requests')
+      .insert({
+        user_id: user.id,
+        plan_type: selectedPlan.id,
+        amount: selectedPlan.price,
+        card_number: CARD_NUMBER.replace(/\s/g, ''),
+        proof_url: proofBase64,
+      });
 
-    const { error } = await supabase.rpc('exec_sql', {
-      sql: `INSERT INTO payment_requests (user_id, plan_type, amount, card_number, proof_url) VALUES ('${user.id}', '${selectedPlan.id}', '${selectedPlan.price}', '${CARD_NUMBER.replace(/\s/g, '')}', ${proofBase64 ? `'${escapedProof}'` : 'NULL'})`
-    });
-
-    if (error) {
-      console.warn('Payment insert error:', error);
+    if (insertError) {
+      console.error('Payment insert error:', insertError);
+      setError('Xatolik yuz berdi: ' + insertError.message);
+      setSubmitting(false);
+      return;
     }
 
     setSubmitted(true);
