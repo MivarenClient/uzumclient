@@ -1,4 +1,4 @@
-import { Download, Loader2, Shield, CheckCircle, Mail } from 'lucide-react';
+import { Download, Loader2, Shield, CheckCircle, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import type { Page } from '@/components/Navbar';
 
@@ -33,8 +33,7 @@ export function DownloadPage({ onNavigate }: DownloadPageProps) {
 
   const handleDownload = async () => {
     try {
-      const email = user.email || profile.username;
-      const fileName = `UzumClient-${email}.jar`;
+      const fileName = `UzumClient-${profile.username}.jar`;
 
       const response = await fetch(`${import.meta.env.BASE_URL}client.jar`);
       if (!response.ok) throw new Error('Client fayli topilmadi');
@@ -67,10 +66,10 @@ export function DownloadPage({ onNavigate }: DownloadPageProps) {
 
         <div className="glass-card p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
-            <Mail className="w-5 h-5 text-primary-400" />
+            <User className="w-5 h-5 text-primary-400" />
             <div>
               <p className="text-sm text-gray-400">Yuklab olinayotgan akkaunt:</p>
-              <p className="text-white font-medium">{user.email}</p>
+              <p className="text-white font-medium">{profile.username}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 mb-4">
@@ -94,7 +93,7 @@ export function DownloadPage({ onNavigate }: DownloadPageProps) {
           <h4 className="text-sm font-semibold text-white mb-2">O'rnatish:</h4>
           <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
             <li>Faylni .minecraft/mods papkasiga joylashtiring</li>
-            <li>Fayl nomi: <span className="text-primary-400 font-mono">UzumClient-{user.email}.jar</span></li>
+            <li>Fayl nomi: <span className="text-primary-400 font-mono">UzumClient-{profile.username}.jar</span></li>
             <li>Minecraft Java Edition (Fabric 1.21.4) ni ishga tushiring</li>
             <li>HWID avtomatik bog'lanadi — qo'shimcha hech narsa kerak emas</li>
           </ol>

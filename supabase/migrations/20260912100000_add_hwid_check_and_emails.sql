@@ -23,23 +23,19 @@ CREATE POLICY "hwid_all" ON public.hwid_users
   FOR ALL USING (true) WITH CHECK (true);
 
 -- CHECK HWID FUNCTION (called by Minecraft mod)
--- Looks up user by email in auth.users, then checks profile subscription
-CREATE OR REPLACE FUNCTION public.check_hwid(p_email text, p_hwid text)
+-- Looks up user by username in profiles, then checks subscription
+DROP FUNCTION IF EXISTS public.check_hwid(text, text);
+CREATE OR REPLACE FUNCTION public.check_hwid(p_username text, p_hwid text)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE v_user RECORD;
-DECLARE v_user_id uuid;
 BEGIN
-  SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
+  SELECT * INTO v_user FROM public.profiles WHERE username = p_username;
   IF NOT FOUND THEN
     RETURN json_build_object('ok', false, 'error', 'Akkaunt topilmadi');
-  END IF;
-  SELECT * INTO v_user FROM public.profiles WHERE id = v_user_id;
-  IF NOT FOUND THEN
-    RETURN json_build_object('ok', false, 'error', 'Profil topilmadi');
   END IF;
   IF v_user.is_blocked THEN
     RETURN json_build_object('ok', false, 'error', 'Akkaunt bloklangan');
@@ -50,13 +46,13 @@ BEGIN
   IF v_user.subscription_expires_at IS NOT NULL AND v_user.subscription_expires_at < now() THEN
     RETURN json_build_object('ok', false, 'error', 'Obuna muddati tugagan');
   END IF;
-  INSERT INTO public.hwid_users (email, hwid) VALUES (p_email, p_hwid)
-    ON CONFLICT (email) DO UPDATE SET hwid = EXCLUDED.hwid;
+  UPDATE public.profiles SET hwid = p_hwid WHERE id = v_user.id;
   RETURN json_build_object('ok', true, 'subscription', v_user.subscription_type);
 END;
 $$;
 
 -- GET ALL EMAILS FUNCTION (for admin panel)
+DROP FUNCTION IF EXISTS public.get_all_emails();
 CREATE OR REPLACE FUNCTION public.get_all_emails()
 RETURNS TABLE(user_id uuid, email text)
 LANGUAGE sql
