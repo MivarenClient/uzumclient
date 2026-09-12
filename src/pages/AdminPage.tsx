@@ -36,14 +36,30 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
 
   const loadAll = async () => {
     setLoading(true);
-    const [rpcRes, newsRes, mediaRes] = await Promise.all([
-      supabase.rpc('get_admin_users'),
-      supabase.from('news').select('*').order('created_at', { ascending: false }),
-      supabase.from('media_applications').select('*').order('created_at', { ascending: false }),
-    ]);
-    if (rpcRes.data && Array.isArray(rpcRes.data)) {
-      setUsers(rpcRes.data as Profile[]);
+
+    const usersRes = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    const newsRes = await supabase.from('news').select('*').order('created_at', { ascending: false });
+    const mediaRes = await supabase.from('media_applications').select('*').order('created_at', { ascending: false });
+
+    if (usersRes.data) {
+      const profiles = usersRes.data as Profile[];
+
+      try {
+        const emailRes = await supabase.rpc('get_all_emails');
+        if (emailRes.data && Array.isArray(emailRes.data)) {
+          const emailMap = new Map<string, string>();
+          for (const e of emailRes.data) {
+            if (e.user_id && e.email) emailMap.set(e.user_id, e.email);
+          }
+          setUsers(profiles.map(u => ({ ...u, email: emailMap.get(u.id) || null })));
+        } else {
+          setUsers(profiles);
+        }
+      } catch {
+        setUsers(profiles);
+      }
     }
+
     if (newsRes.data) setNews(newsRes.data as NewsItem[]);
     if (mediaRes.data) {
       const all = mediaRes.data as MediaApplication[];
