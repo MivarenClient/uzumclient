@@ -20,6 +20,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [changingPw, setChangingPw] = useState(false);
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
@@ -129,6 +130,29 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
 
   const hasSubscription = profile.subscription_type !== 'none';
   const isLifetime = profile.subscription_type === 'lifetime';
+
+  const handleDownload = async () => {
+    if (!profile) return;
+    setDownloading(true);
+    try {
+      const fileName = `UzumClient-${profile.username}.jar`;
+      const response = await fetch(`${import.meta.env.BASE_URL}client.jar`);
+      if (!response.ok) throw new Error('Client fayli topilmadi');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Yuklab olishda xatolik yuz berdi.');
+    }
+    setDownloading(false);
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
@@ -332,14 +356,16 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
 
               {hasSubscription ? (
                 <button
-                  onClick={() => {
-                    // In a real app, this would trigger a download
-                    alert('Yuklab olish boshlandi! (Demo rejim)');
-                  }}
-                  className="btn-primary w-full flex items-center justify-center gap-2"
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <Download className="w-5 h-5" />
-                  Modni yuklab olish
+                  {downloading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Download className="w-5 h-5" />
+                  )}
+                  {downloading ? 'Yuklanmoqda...' : 'Modni yuklab olish'}
                 </button>
               ) : (
                 <div className="text-center py-4">
