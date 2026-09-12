@@ -10,6 +10,7 @@ import { NewsPage } from '@/pages/NewsPage';
 import { MediaPartnerPage } from '@/pages/MediaPartnerPage';
 import { SupportPage } from '@/pages/SupportPage';
 import { AdminPage } from '@/pages/AdminPage';
+import { DownloadPage } from '@/pages/DownloadPage';
 
 function AppContent() {
   const [page, setPage] = useState<Page>('home');
@@ -32,7 +33,8 @@ function AppContent() {
       case 'news': return <NewsPage />;
       case 'media': return <MediaPartnerPage onNavigate={handleNavigate} />;
       case 'support': return <SupportPage />;
-      case 'admin': return <AdminPage onNavigate={handleNavigate} />;
+        case 'admin': return <AdminPage onNavigate={handleNavigate} />;
+        case 'download': return <DownloadPage onNavigate={handleNavigate} />;
       default: return <HomePage onNavigate={handleNavigate} />;
     }
   };

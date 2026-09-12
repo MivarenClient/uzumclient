@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Menu, X, Home, CreditCard, Headphones, Users, User } from 'lucide-react';
+import { Menu, X, Home, CreditCard, Headphones, Users, User, Download } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-export type Page = 'home' | 'news' | 'subscriptions' | 'support' | 'media' | 'account' | 'admin' | 'auth';
+export type Page = 'home' | 'news' | 'subscriptions' | 'support' | 'media' | 'account' | 'admin' | 'auth' | 'download';
 
 type NavbarProps = {
   currentPage: Page;
@@ -78,6 +78,19 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                     Admin
                   </button>
                 )}
+                {profile.subscription_type !== 'none' && (
+                  <button
+                    onClick={() => handleNav('download')}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                      currentPage === 'download'
+                        ? 'bg-success-500/15 text-success-300 border border-success-500/20'
+                        : 'text-success-400 hover:bg-success-500/10'
+                    }`}
+                  >
+                    <Download className="w-4 h-4" />
+                    Yuklab olish
+                  </button>
+                )}
                 <button
                   onClick={() => handleNav('account')}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
@@ -149,6 +162,19 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                       }`}
                     >
                       Admin panel
+                    </button>
+                  )}
+                  {profile.subscription_type !== 'none' && (
+                    <button
+                      onClick={() => handleNav('download')}
+                      className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-3 ${
+                        currentPage === 'download'
+                          ? 'bg-success-500/15 text-success-300'
+                          : 'text-success-400 hover:bg-success-500/10'
+                      }`}
+                    >
+                      <Download className="w-5 h-5" />
+                      Yuklab olish
                     </button>
                   )}
                   <button
