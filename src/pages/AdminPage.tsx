@@ -36,18 +36,13 @@ export function AdminPage({ onNavigate }: AdminPageProps) {
 
   const loadAll = async () => {
     setLoading(true);
-    const [usersRes, newsRes, mediaRes, emailRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+    const [rpcRes, newsRes, mediaRes] = await Promise.all([
+      supabase.rpc('get_admin_users'),
       supabase.from('news').select('*').order('created_at', { ascending: false }),
       supabase.from('media_applications').select('*').order('created_at', { ascending: false }),
-      supabase.from('user_emails').select('user_id, email'),
     ]);
-    if (usersRes.data) {
-      const emailMap = new Map<string, string>();
-      if (emailRes.data) {
-        for (const e of emailRes.data) emailMap.set(e.user_id, e.email);
-      }
-      setUsers((usersRes.data as Profile[]).map(u => ({ ...u, email: emailMap.get(u.id) || null })));
+    if (rpcRes.data && Array.isArray(rpcRes.data)) {
+      setUsers(rpcRes.data as Profile[]);
     }
     if (newsRes.data) setNews(newsRes.data as NewsItem[]);
     if (mediaRes.data) {
